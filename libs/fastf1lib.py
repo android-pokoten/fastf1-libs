@@ -1,26 +1,26 @@
 class myFastf1:
+    # target fastf1 ver: 3.1.3
 
     # キャッシュのパスを定義。呼び出し先のパスが変わることを考慮して絶対パスで記述する。
     # セッション用の変数は未使用
     def __init__(self):
         self.session_race = ''
         self.session_qual = ''
-        self.cache = '/work/fastf1/cache/'
 
     # 【旧版】セッション読み込み
-    def load_session(self, name, year):
+    def load_session(self, name, year, cache = './cache'):
         import fastf1
 
-        fastf1.Cache.enable_cache(self.cache)
+        fastf1.Cache.enable_cache(cache)
         self.session_race = fastf1.get_session(year, name, 'R')
         self.session_race.load()
         self.session_qual = fastf1.get_session(year, name, 'Q')
         self.session_qual.load()
 
-    def load_session_o(self, name, year, s):
+    def load_session_o(self, name, year, s, cache = './cache'):
         import fastf1
 
-        fastf1.Cache.enable_cache(self.cache)
+        fastf1.Cache.enable_cache(cache)
         session = fastf1.get_session(year, name, s)
         session.load()
 
@@ -185,8 +185,8 @@ class myFastf1:
 
         fastf1.plotting.setup_mpl(misc_mpl_mods=False)
 
-        driver_laps = session.laps.pick_driver(driver).pick_quicklaps().reset_index()
-        driver_laps['Compound'].loc[driver_laps['Compound'] == 'TEST_UNKNOWN'] = 'TEST-UNKNOWN'
+        driver_laps = session.laps.pick_driver(driver).pick_quicklaps().reset_index(drop=True)
+        #driver_laps['Compound'].loc[driver_laps['Compound'] == 'TEST_UNKNOWN'] = 'TEST-UNKNOWN'
 
         fig, ax = plt.subplots(figsize=(8, 8))
 
@@ -224,6 +224,7 @@ class myFastf1:
         driver_laps = session.laps.pick_drivers(point_finishers).pick_quicklaps()
         driver_laps = driver_laps.reset_index()
         driver_laps["LapTime(s)"] = driver_laps["LapTime"].dt.total_seconds()
+        driver_laps = driver_laps.reset_index(drop=True)
 
         finishing_order = [session.get_driver(i)["Abbreviation"] for i in point_finishers]
 
@@ -300,6 +301,7 @@ class myFastf1:
 
         transformed_laps = laps.copy()
         transformed_laps.loc[:, "LapTime (s)"] = laps["LapTime"].dt.total_seconds()
+        transformed_laps = transformed_laps.reset_index(drop=True)
 
         team_order = (
             transformed_laps[["Team", "LapTime (s)"]]
@@ -562,6 +564,172 @@ class myFastf1:
         #ax.set_ylim(np.timedelta64(min_sec, 's'), np.timedelta64(max_sec, 's'))
 
         plt.suptitle(f"{session.event['EventName']} {session.event.year} Time Delta from {target_drv}")
+
+        plt.tight_layout()
+        plt.show()
+
+    def speedtrap_heatmap(self, session, datanum, vmin):
+        import seaborn as sns
+        import pandas as pd
+        import matplotlib as mpl
+        import matplotlib.pyplot as plt
+
+        drivers = session.drivers
+
+        df = pd.DataFrame()
+
+        for drv in drivers:
+            laps = session.laps.pick_driver(drv)
+
+            speed_list = list()
+            for index, lap in laps.iterlaps():
+                speed = max(lap.get_car_data()['Speed'])
+                speed_list.append(speed)
+            speed_list.sort()
+            speed_list.reverse()
+            speed_list = speed_list[:datanum]
+
+            abb = session.get_driver(drv)['Abbreviation']
+
+            df1 = pd.DataFrame({abb: speed_list})
+
+            df = pd.concat([df, df1.T])
+
+        df.fillna(0, inplace=True)
+        df = df.astype('int64')
+
+        fig, ax = plt.subplots(figsize=(12, 10))
+
+        sns.heatmap(
+            df,
+            annot=True,
+            fmt="d",
+            #annot_kws={"fontsize": 16, "fontfamily": "serif"},
+            #square=True,
+            cmap='hot',
+            vmin=vmin,
+            ax=ax
+            )
+        plt.suptitle(f"{session.event['EventName']} {session.event.year} Speed Trap Heatmap")
+        plt.show()
+
+    def datachart_compare(self, session, driver1, driver2):
+        import fastf1
+        from fastf1.core import Laps
+        import fastf1.plotting
+
+        import matplotlib.pyplot as plt
+        from matplotlib.collections import LineCollection
+        from matplotlib import cm
+        import numpy as np
+        import pandas as pd
+        from timple.timedelta import strftimedelta
+
+        abb1 = session.laps.pick_driver(driver1)['Driver'].iloc[0]
+        color1 = fastf1.plotting.driver_color(abb1)
+
+        abb2 = session.laps.pick_driver(driver2)['Driver'].iloc[0]
+        color2 = fastf1.plotting.driver_color(abb2)
+
+        lap1 = session.laps.pick_driver(driver1).pick_fastest()
+        tel1 = lap1.get_telemetry()
+        linestyle1 = 'solid'
+
+        lap2 = session.laps.pick_driver(driver2).pick_fastest()
+        tel2 = lap2.get_telemetry()
+        linestyle2 = 'dashed'
+
+        fig = plt.figure(figsize=[10, 12])
+        axes = fig.subplots(6, 1)
+
+        axes[0].plot(tel1["Distance"], tel1["Speed"], color=color1, linestyle=linestyle1)
+        axes[0].plot(tel2["Distance"], tel2["Speed"], color=color2, linestyle=linestyle2)
+        axes[0].grid(which = 'major', color='gray', linestyle='--' )
+        axes[0].set_ylabel('Speed (km/h)')
+
+        axes[1].plot(tel1["Distance"], tel1["Throttle"], color=color1, linestyle=linestyle1)
+        axes[1].plot(tel2["Distance"], tel2["Throttle"], color=color2, linestyle=linestyle2)
+        axes[1].grid(which = 'major', color='gray', linestyle='--' )
+        axes[1].set_ylabel('Throttle (%)')
+
+        axes[2].plot(tel1["Distance"], tel1["Brake"], color=color1, linestyle=linestyle1)
+        axes[2].plot(tel2["Distance"], tel2["Brake"], color=color2, linestyle=linestyle2)
+        axes[2].grid(which = 'major', color='gray', linestyle='--' )
+        axes[2].set_yticks([0, 1])
+        axes[2].set_yticklabels(["OFF", "ON"])
+        axes[2].set_ylabel('Brake')
+
+        axes[3].plot(tel1["Distance"], tel1["RPM"], color=color1, linestyle=linestyle1)
+        axes[3].plot(tel2["Distance"], tel2["RPM"], color=color2, linestyle=linestyle2)
+        axes[3].grid(which = 'major', color='gray', linestyle='--' )
+        axes[5].set_yticks([9000, 12000])
+        axes[3].set_ylabel('RPM')
+
+        axes[4].plot(tel1["Distance"], tel1["nGear"], color=color1, linestyle=linestyle1)
+        axes[4].plot(tel2["Distance"], tel2["nGear"], color=color2, linestyle=linestyle2)
+        axes[4].grid(which = 'major', color='gray', linestyle='--' )
+        axes[4].set_yticks([1, 2, 3, 4, 5, 6, 7, 8])
+        axes[4].set_ylabel('Gear')
+
+        axes[5].plot(tel1["Distance"], tel1["DRS"], color=color1, linestyle=linestyle1)
+        axes[5].plot(tel2["Distance"], tel2["DRS"], color=color2, linestyle=linestyle2)
+        axes[5].set_xlabel('Distance (m)')
+        axes[5].grid(which = 'major', color='gray', linestyle='--' )
+        axes[5].set_yticks([8, 12])
+        axes[5].set_yticklabels(["OFF", "ON"])
+        axes[5].set_ylabel('DRS')
+
+        lap_time_string = strftimedelta(lap1['LapTime'], '%m:%s.%ms')
+        lap_time2_string = strftimedelta(lap2['LapTime'], '%m:%s.%ms')
+        plt.suptitle(f"{session.event['EventName']} {session.event.year} Qualifying\n"
+                    f"Fastest Lap: {lap_time_string} ({lap1['Driver']}) vs {lap_time2_string} ({lap2['Driver']})")
+        plt.show()
+
+
+    def gap_to_average(self, session, drivers, min_sec, max_sec, lap_num=0):
+        import fastf1.plotting
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        fastf1.plotting.setup_mpl(misc_mpl_mods=False)
+
+        fig, ax = plt.subplots()
+
+        #laps = session.laps[lap_num:]
+        #laps = laps.reset_index()
+        #target = session.laps.pick_driver(drivers[0])
+        target = session.laps.pick_driver(drivers[0])[lap_num:]
+        target = target.reset_index()
+        target['LapTimeSec'] = target['LapTime'].dt.total_seconds()
+        #target = target.reset_index()
+        lap_count = target['LapNumber'].count()
+        target_avg = target['LapTimeSec'].sum() / lap_count
+
+        for drv in drivers:
+            drv_laps = session.laps.pick_driver(drv)[lap_num:]
+            drv_laps = drv_laps.reset_index()
+            #drv_laps = laps.pick_driver(drv)
+            if len(drv_laps) == 0:
+                continue
+            abb = drv_laps['Driver'].iloc[0]
+            color = fastf1.plotting.driver_color(abb)
+            drv_laps['LapTimeSec'] = drv_laps['LapTime'].dt.total_seconds()
+            drv_laps['deltaLapTime'] = target_avg - drv_laps['LapTimeSec']
+            #drv_laps['deltaLapTime'].iloc[0] = drv_laps['deltaLapTime'].iloc[0] - (drv_laps['LapStartTime'].iloc[0].total_seconds() - target['LapStartTime'].iloc[0].total_seconds())
+            drv_laps.loc[0, 'deltaLapTime'] = drv_laps.loc[0, 'deltaLapTime'] - (drv_laps.loc[0, 'LapStartTime'].total_seconds() - target.loc[0, 'LapStartTime'].total_seconds())
+            drv_laps['deltaCumsum'] = drv_laps['deltaLapTime'].cumsum()
+
+            ax.plot(drv_laps['LapNumber'], drv_laps['deltaCumsum'], label=abb, color=color)
+
+
+        ax.legend()
+        ax.set_xlabel("Lap Number")
+        ax.set_ylabel("Lap Time")
+        ax.yaxis.grid(True, which='major', linestyle='--', color='gray', zorder=-1000)
+        ax.set_ylim([min_sec, max_sec])
+
+        ax.invert_yaxis()
+        plt.suptitle(f"{session.event['EventName']} {session.event.year} Gap to Average")
 
         plt.tight_layout()
         plt.show()
