@@ -1,0 +1,1 @@
+from fastf1_lib.fastf1lib import myFastf1
