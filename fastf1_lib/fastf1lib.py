@@ -233,7 +233,7 @@ class myFastf1:
         
         plt.show()
 
-    def driver_laptime(self, session, driver):
+    def driver_laptime(self, session, driver, min_sec=0, max_sec=0):
         """
         ## ドライバーのラップタイム一覧 ##
         タイヤコンパウントで色分けしてラップタイムをプロットする。  
@@ -244,11 +244,16 @@ class myFastf1:
             セッションオブジェクト
         1. driver : string
             ドライバー名を3文字略称で指定
+        1. min_sec : int
+            グラフの最小値(秒数)
+        1. max_sec : int
+            グラフの最大値(秒数)
         """
         import fastf1
         import fastf1.plotting
         import seaborn as sns
         import matplotlib.pyplot as plt
+        import numpy as np
 
         fastf1.plotting.setup_mpl(misc_mpl_mods=False)
 
@@ -275,6 +280,9 @@ class myFastf1:
 
         plt.grid(color='w', which='major', axis='both')
         sns.despine(left=True, bottom=True)
+
+        if not min_sec == 0:
+            ax.set_ylim(np.timedelta64(min_sec, 's'), np.timedelta64(max_sec, 's'))
 
         plt.tight_layout()
         plt.show()
@@ -645,7 +653,7 @@ class myFastf1:
         ax.set_ylim(np.timedelta64(min_sec, 's'), np.timedelta64(max_sec, 's'))
 
         ax.invert_yaxis()
-        plt.suptitle(f"{session.event['EventName']} {session.event.year} Race Laptime")
+        plt.suptitle(f"{session.event['EventName']} {session.event.year} Laptime Comperition")
 
         plt.tight_layout()
         plt.show()
