@@ -1,2 +1,2 @@
 fastf1
-seaborn<0.13.0 
+seaborn
