@@ -124,7 +124,7 @@ class myFastf1:
         plt.show()
 
 
-    def tyre_strategies(self, session):
+    def tyre_strategies(self, session, drivers):
         """
         ## タイヤ使用履歴 ##
 
@@ -132,34 +132,36 @@ class myFastf1:
         ----------
         1. session : session 
             セッションオブジェクト
+        2. drivers : list
+            一覧表示するドライバーのリスト。全員を指定する場合は session_race.drivers を渡す
         """
         import fastf1.plotting
         from matplotlib import pyplot as plt
 
         laps = session.laps
 
-        drivers = session.drivers
         drivers = [session.get_driver(driver)["Abbreviation"] for driver in drivers]
 
-        stints = laps[["Driver", "Stint", "Compound", "LapNumber"]]
-        stints = stints.groupby(["Driver", "Stint", "Compound"])
+        stints = laps[["Driver", "Stint", "Compound", "LapNumber", "FreshTyre"]]
+        stints = stints.groupby(["Driver", "Stint", "Compound", "FreshTyre"])
         stints = stints.count().reset_index()
         stints = stints.rename(columns={"LapNumber": "StintLength"})
-        stints['Compound'].loc[stints['Compound'] == 'TEST_UNKNOWN'] = 'TEST-UNKNOWN'
 
-        fig, ax = plt.subplots(figsize=(5, 10))
+        hx = len(drivers) / 2
+        fig, ax = plt.subplots(figsize=(5, hx))
 
         for driver in drivers:
             driver_stints = stints.loc[stints["Driver"] == driver]
 
             previous_stint_end = 0
             for idx, row in driver_stints.iterrows():
+                colors = ['black' if row["FreshTyre"] else 'silver']
                 plt.barh(
                     y=driver,
                     width=row["StintLength"],
                     left=previous_stint_end,
                     color=fastf1.plotting.COMPOUND_COLORS[row["Compound"]],
-                    edgecolor="black",
+                    edgecolor=colors,
                     fill=True
                 )
 
