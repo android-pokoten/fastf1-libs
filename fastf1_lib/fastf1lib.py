@@ -155,15 +155,16 @@ class myFastf1:
 
             previous_stint_end = 0
             for idx, row in driver_stints.iterrows():
-                colors = ['black' if row["FreshTyre"] else 'silver']
-                plt.barh(
+                colors = 'black' if row["FreshTyre"] else 'blue'
+                p = plt.barh(
                     y=driver,
                     width=row["StintLength"],
                     left=previous_stint_end,
                     color=fastf1.plotting.COMPOUND_COLORS[row["Compound"]],
-                    edgecolor=colors,
+                    edgecolor='black',
                     fill=True
                 )
+                ax.bar_label(p, label_type='center', color=colors)
 
                 previous_stint_end += row["StintLength"]
 
