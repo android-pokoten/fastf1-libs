@@ -622,8 +622,30 @@ class myFastf1:
 
         #### Parameters ####
         ----------
-        1. session : session 
+        1. session : session
             セッションオブジェクト
+        1. drivers : [string]
+            プロットするドライバーをリスト形式で指定
+        1. min_sec : int
+            y 軸の上端値(秒数で指定)
+        1. max_sec : int
+            y 軸の下端値(秒数で指定)
+        """
+        self.laptime_comperition_sep(session.event, session.laps, drivers, min_sec, max_sec)
+
+    def laptime_comperition_sep(self, event, laps, drivers, min_sec, max_sec):
+        """
+        ## 各ドライバーのラップタイム推移(一部のラップのみ) ##
+        ソフトタイヤのラップのみをグラフ化する場合など、別途フィルターしたラップでグラフ化したい場合に使用する。
+        ドライバーリストは [] で囲んで , で区切って記載する。  
+
+        #### Parameters ####
+        ----------
+        1. event : session.event 
+            セッションのeventオブジェクト
+        1. laps : session.laps 
+            セッションのlapsオブジェクト。セッション全体をグラフ化する場合は session.laps で指定する。
+            一部のラップのみをグラフ化する場合は、先に条件でラップをフィルターしてから指定する。
         1. drivers : [string]
             プロットするドライバーをリスト形式で指定
         1. min_sec : int
@@ -640,7 +662,7 @@ class myFastf1:
         fig, ax = plt.subplots()
 
         for drv in drivers:
-            drv_laps = session.laps.pick_driver(drv)
+            drv_laps = laps.pick_driver(drv)
             if len(drv_laps) == 0:
                 continue
             abb = drv_laps['Driver'].iloc[0]
@@ -655,7 +677,7 @@ class myFastf1:
         ax.set_ylim(np.timedelta64(min_sec, 's'), np.timedelta64(max_sec, 's'))
 
         ax.invert_yaxis()
-        plt.suptitle(f"{session.event['EventName']} {session.event.year} Laptime Comperition")
+        plt.suptitle(f"{event['EventName']} {event.year} Laptime Comperition")
 
         plt.tight_layout()
         plt.show()
