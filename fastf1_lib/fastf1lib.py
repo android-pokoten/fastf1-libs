@@ -491,11 +491,13 @@ class myFastf1:
         fastest_compound = fastest_compound[['Minisector', 'Driver']].rename(columns={'Driver': 'Fastest_drv'})
 
         telemetry = telemetry.merge(fastest_compound, on=['Minisector'])
+        telemetry['Seps'] = telemetry['Minisector'] - telemetry['Minisector'].shift(1)
 
         telemetry = telemetry.sort_values(by=['Distance'])
 
         telemetry.loc[telemetry['Fastest_drv'] == driver1, 'Fastest_drv_int'] = d1_color
         telemetry.loc[telemetry['Fastest_drv'] == driver2, 'Fastest_drv_int'] = d2_color
+        telemetry.loc[telemetry['Seps'] == 1.0, 'Fastest_drv_int'] = 'black'
 
         single_lap = telemetry
 
