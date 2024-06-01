@@ -430,7 +430,7 @@ class myFastf1:
         plt.show()
 
 
-    def minisector_compare(self, session, driver1, driver2, minisectors):
+    def minisector_compare(self, session, driver1, driver1_lap, driver2, driver2_lap, minisectors):
         """
         ## ミニセクターごとにドライバー比較 ##
         ミニセクター区切りは、最初に 0 を入れること。  
@@ -443,8 +443,12 @@ class myFastf1:
             セッションオブジェクト
         1. driver1 : string
             ドライバー1。
+        1. driver1_lap : int
+            ドライバー1のラップ。
         1. driver2 : string
             ドライバー2。
+        1. driver2_lap : int
+            ドライバー2のラップ。
         1. minisectors : [int]
             ミニセクターの距離をリストで指定。
         """
@@ -459,8 +463,8 @@ class myFastf1:
         plotting.setup_mpl()
         pd.options.mode.chained_assignment = None
 
-        d1_lap = session.laps.pick_driver(driver1).pick_fastest()
-        d2_lap = session.laps.pick_driver(driver2).pick_fastest()
+        d1_lap = session.laps.pick_driver(driver1).pick_lap(driver1_lap)
+        d2_lap = session.laps.pick_driver(driver2).pick_lap(driver2_lap)
 
         d1_tel = d1_lap.get_telemetry().add_distance()
         d1_tel['Driver'] = driver1
@@ -479,8 +483,8 @@ class myFastf1:
         telemetry['Minisector'] = telemetry['Distance'].apply(
             lambda z: (
                 minisectors.index(
-                    min(minisectors, key=lambda x: abs(x-z))
-                )+1
+                    max(minisectors, key=lambda x: x-z if (x <= z) else 0)
+                )
             )
         )
 
@@ -491,13 +495,11 @@ class myFastf1:
         fastest_compound = fastest_compound[['Minisector', 'Driver']].rename(columns={'Driver': 'Fastest_drv'})
 
         telemetry = telemetry.merge(fastest_compound, on=['Minisector'])
-        telemetry['Seps'] = telemetry['Minisector'] - telemetry['Minisector'].shift(1)
 
         telemetry = telemetry.sort_values(by=['Distance'])
 
         telemetry.loc[telemetry['Fastest_drv'] == driver1, 'Fastest_drv_int'] = d1_color
         telemetry.loc[telemetry['Fastest_drv'] == driver2, 'Fastest_drv_int'] = d2_color
-        telemetry.loc[telemetry['Seps'] == 1.0, 'Fastest_drv_int'] = 'black'
 
         single_lap = telemetry
 
@@ -514,10 +516,19 @@ class myFastf1:
 
         plt.rcParams['figure.figsize'] = [12, 5]
 
-        plt.suptitle(f"Minisector {driver1} vs {driver2}")
+        plt.suptitle(f"Minisector {driver1} on LAP {driver1_lap}\n"
+                     f"vs {driver2} on LAP {driver2_lap}")
         plt.gca().add_collection(lc_comp)
         plt.axis('equal')
         plt.tick_params(labelleft=False, left=False, labelbottom=False, bottom=False)
+
+        # ミニセクターの区切りに印を追加
+        for i in minisectors:
+            pos = d1_tel[d1_tel['Distance'] <= i].tail(1)
+            pos_x = pos["X"].values[0]
+            pos_y = pos["Y"].values[0]
+            label = minisectors.index(i)
+            plt.gca().annotate(label, xy=(pos_x, pos_y), size=10, color="red", arrowprops=dict())
 
         plt.show()
 
