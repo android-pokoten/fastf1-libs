@@ -62,7 +62,7 @@ class myFastf1:
         import fastf1.plotting
         from matplotlib import pyplot as plt
 
-        fastf1.plotting.setup_mpl(misc_mpl_mods=False)
+        fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
 
         fastest_lap = session.laps.pick_fastest()
         car_data = fastest_lap.get_car_data().add_distance()
@@ -102,7 +102,7 @@ class myFastf1:
         import fastf1.plotting
         from matplotlib import pyplot as plt
 
-        fastf1.plotting.setup_mpl(misc_mpl_mods=False)
+        fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
 
         fig, ax = plt.subplots(figsize=(8.0, 4.9))
 
@@ -111,8 +111,10 @@ class myFastf1:
             if len(drv_laps) == 0:
                 continue
             abb = drv_laps['Driver'].iloc[0]
-            color = fastf1.plotting.driver_color(abb)
-            ax.plot(drv_laps['LapNumber'], drv_laps['Position'], label=abb, color=color)
+            style = fastf1.plotting.get_driver_style(identifier=abb,
+            style=['color', 'linestyle'],
+            session=session)
+            ax.plot(drv_laps['LapNumber'], drv_laps['Position'], label=abb, **style)
         
         ax.set_ylim([20.5, 0.5])
         ax.set_yticks([1, 5, 10, 15, 20])
@@ -216,7 +218,7 @@ class myFastf1:
 
         team_colors = list()
         for index, lap in fastest_laps.iterlaps():
-            color = fastf1.plotting.team_color(lap['Team'])
+            color = fastf1.plotting.get_team_color(lap['Team'], session=session)
             team_colors.append(color)
 
         fig, ax = plt.subplots()
@@ -258,7 +260,7 @@ class myFastf1:
         import matplotlib.pyplot as plt
         import numpy as np
 
-        fastf1.plotting.setup_mpl(misc_mpl_mods=False)
+        fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
 
         driver_laps = session.laps.pick_driver(driver).pick_quicklaps().reset_index(drop=True)
         #driver_laps['Compound'].loc[driver_laps['Compound'] == 'TEST_UNKNOWN'] = 'TEST-UNKNOWN'
@@ -353,7 +355,7 @@ class myFastf1:
         import fastf1.plotting
         import matplotlib.pyplot as plt
 
-        fastf1.plotting.setup_mpl(mpl_timedelta_support=False, misc_mpl_mods=False)
+        fastf1.plotting.setup_mpl(mpl_timedelta_support=False, misc_mpl_mods=False, color_scheme='fastf1')
 
         d1_lap = session.laps.pick_driver(driver1).pick_fastest()
         d2_lap = session.laps.pick_driver(driver2).pick_fastest()
@@ -390,7 +392,7 @@ class myFastf1:
         import seaborn as sns
         import matplotlib.pyplot as plt
 
-        fastf1.plotting.setup_mpl(mpl_timedelta_support=False, misc_mpl_mods=False)
+        fastf1.plotting.setup_mpl(mpl_timedelta_support=False, misc_mpl_mods=False, color_scheme='fastf1')
 
         laps = session.laps.pick_quicklaps()
 
@@ -406,7 +408,7 @@ class myFastf1:
             .index
         )
 
-        team_palette = {team: fastf1.plotting.team_color(team) for team in team_order}
+        team_palette = {team: fastf1.plotting.get_team_color(team, session=session) for team in team_order}
 
         fig, ax = plt.subplots(figsize=(15, 10))
         sns.boxplot(
@@ -645,9 +647,9 @@ class myFastf1:
         1. max_sec : int
             y 軸の下端値(秒数で指定)
         """
-        self.laptime_comperition_sep(session.event, session.laps, drivers, min_sec, max_sec)
+        self.laptime_comperition_sep(session, session.event, session.laps, drivers, min_sec, max_sec)
 
-    def laptime_comperition_sep(self, event, laps, drivers, min_sec, max_sec):
+    def laptime_comperition_sep(self, session, event, laps, drivers, min_sec, max_sec):
         """
         ## 各ドライバーのラップタイム推移(一部のラップのみ) ##
         ソフトタイヤのラップのみをグラフ化する場合など、別途フィルターしたラップでグラフ化したい場合に使用する。
@@ -655,6 +657,8 @@ class myFastf1:
 
         #### Parameters ####
         ----------
+        1. session : session 
+            セッションオブジェクト
         1. event : session.event 
             セッションのeventオブジェクト
         1. laps : session.laps 
@@ -671,7 +675,7 @@ class myFastf1:
         import matplotlib.pyplot as plt
         import numpy as np
 
-        fastf1.plotting.setup_mpl(misc_mpl_mods=False)
+        fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
 
         fig, ax = plt.subplots()
 
@@ -680,9 +684,10 @@ class myFastf1:
             if len(drv_laps) == 0:
                 continue
             abb = drv_laps['Driver'].iloc[0]
-            color = fastf1.plotting.driver_color(abb)
-            ax.plot(drv_laps['LapNumber'], drv_laps['LapTime'], label=abb, color=color)
-
+            style = fastf1.plotting.get_driver_style(identifier=abb,
+            style=['color', 'linestyle'],
+            session=session)
+            ax.plot(drv_laps['LapNumber'], drv_laps['LapTime'], label=abb, **style)
 
         ax.legend()
         ax.set_xlabel("Lap Number")
@@ -713,7 +718,7 @@ class myFastf1:
         import matplotlib.pyplot as plt
         import numpy as np
 
-        fastf1.plotting.setup_mpl(misc_mpl_mods=False)
+        fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
 
         target = session.laps.pick_driver(drivers[0])['LapStartTime'].dt.total_seconds().reset_index(drop=True)
         target_drv = session.laps.pick_driver(drivers[0])['Driver'].iloc[0]
@@ -724,9 +729,10 @@ class myFastf1:
             if len(drv_laps) == 0:
                 continue
             abb = session.laps.pick_driver(drv)['Driver'].iloc[0]
-            color = fastf1.plotting.driver_color(abb)
-            ax.plot(target - drv_laps, label=abb, color=color)
-
+            style = fastf1.plotting.get_driver_style(identifier=abb,
+            style=['color', 'linestyle'],
+            session=session)
+            ax.plot(target - drv_laps, label=abb, **style)
 
         ax.legend()
         ax.set_xlabel("Lap Number")
@@ -822,10 +828,10 @@ class myFastf1:
         from timple.timedelta import strftimedelta
 
         abb1 = session.laps.pick_driver(driver1)['Driver'].iloc[0]
-        color1 = fastf1.plotting.driver_color(abb1)
+        color1 = fastf1.plotting.get_driver_color(abb1, session)
 
         abb2 = session.laps.pick_driver(driver2)['Driver'].iloc[0]
-        color2 = fastf1.plotting.driver_color(abb2)
+        color2 = fastf1.plotting.get_driver_color(abb2, session)
 
         lap1 = session.laps.pick_driver(driver1).pick_fastest()
         tel1 = lap1.get_telemetry()
@@ -906,7 +912,7 @@ class myFastf1:
         import matplotlib.pyplot as plt
         import numpy as np
 
-        fastf1.plotting.setup_mpl(misc_mpl_mods=False)
+        fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
 
         fig, ax = plt.subplots()
 
@@ -923,13 +929,15 @@ class myFastf1:
             if len(drv_laps) == 0:
                 continue
             abb = drv_laps['Driver'].iloc[0]
-            color = fastf1.plotting.driver_color(abb)
+            style = fastf1.plotting.get_driver_style(identifier=abb,
+            style=['color', 'linestyle'],
+            session=session)
             drv_laps['LapTimeSec'] = drv_laps['LapTime'].dt.total_seconds()
             drv_laps['deltaLapTime'] = target_avg - drv_laps['LapTimeSec']
             drv_laps.loc[0, 'deltaLapTime'] = drv_laps.loc[0, 'deltaLapTime'] - (drv_laps.loc[0, 'LapStartTime'].total_seconds() - target.loc[0, 'LapStartTime'].total_seconds())
             drv_laps['deltaCumsum'] = drv_laps['deltaLapTime'].cumsum()
 
-            ax.plot(drv_laps['LapNumber'], drv_laps['deltaCumsum'], label=abb, color=color)
+            ax.plot(drv_laps['LapNumber'], drv_laps['deltaCumsum'], label=abb, **style)
 
 
         ax.legend()
@@ -978,7 +986,7 @@ class myFastf1:
         index = 0
         for drv in [driver1, driver2]:
             lap1 = session.laps.pick_driver(drv).pick_fastest()
-            color1 = fastf1.plotting.driver_color(lap1['Driver'])
+            color1 = fastf1.plotting.get_driver_color(lap1['Driver'], session)
             tel1 = lap1.get_telemetry()
             # 指定した距離を抽出するための条件
             condition = (tel1['Distance'] >= min_dist) & (tel1['Distance'] <= max_dist)
