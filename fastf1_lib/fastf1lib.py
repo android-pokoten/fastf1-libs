@@ -953,7 +953,7 @@ class myFastf1:
         plt.show()
 
 
-    def cornerspeed_compare(self, session, driver1, driver2, min_dist, max_dist):
+    def cornerspeed_compare(self, session, driver1, driver2, min_dist, max_dist, lap=0):
         """
         2 ドライバー間のコーナーの速度差を計算する。
 
@@ -974,6 +974,8 @@ class myFastf1:
             表示開始の距離
         max_dist : int
             表示終了の距離
+        lap : int (省略可能)
+            比較するラップ数。省略時、または 0 を指定するとファステストラップを比較する
         """
         import fastf1.plotting
         import matplotlib.pyplot as plt
@@ -985,18 +987,24 @@ class myFastf1:
         # ドライバーごとにグラフ位置をずらすためのシフト値
         index = 0
         for drv in [driver1, driver2]:
-            lap1 = session.laps.pick_driver(drv).pick_fastest()
-            color1 = fastf1.plotting.get_driver_color(lap1['Driver'], session)
+            if lap != 0:
+                lap1 = session.laps.pick_driver(drv).pick_lap(lap).iloc[0]
+            else:
+                lap1 = session.laps.pick_driver(drv).pick_fastest()
+            style = fastf1.plotting.get_driver_style(lap1['Driver'],
+            style=['color', 'linestyle'],
+            session=session
+            )
             tel1 = lap1.get_telemetry()
             # 指定した距離を抽出するための条件
             condition = (tel1['Distance'] >= min_dist) & (tel1['Distance'] <= max_dist)
 
             # 速度グラフを表示
-            ax.plot(tel1["Distance"].loc[condition], tel1["Speed"].loc[condition], color=color1)
+            ax.plot(tel1["Distance"].loc[condition], tel1["Speed"].loc[condition], label=drv, **style)
 
             # スロットル開度 90 以上 (全開が 100 ではなく 99 のデータもあったため)、またはブレーキを踏んでいる時を 1 にする Inaction を計算する
             tel1['Inaction'] = ((tel1['Throttle'] > 90) | (tel1['Brake'])).astype(int) + index
-            ax1.plot(tel1["Distance"].loc[condition], tel1["Inaction"].loc[condition], color=color1, linestyle='dashed')
+            ax1.plot(tel1["Distance"].loc[condition], tel1["Inaction"].loc[condition], **style)
 
             index = index + 1
             
@@ -1005,6 +1013,10 @@ class myFastf1:
         ax1.set_ylim([-5, 5])
 
         ax.legend()
-        plt.suptitle(f"{session.event['EventName']} {session.event.year}\n"
+        if lap != 0:
+            lapstring = f"Lap {lap}"
+        else:
+            lapstring = 'Fastest Lap'
+        plt.suptitle(f"{session.event['EventName']} {session.event.year} on {lapstring}\n"
                      f"{driver1} vs {driver2}")
         plt.show()
