@@ -107,7 +107,7 @@ class myFastf1:
         fig, ax = plt.subplots(figsize=(8.0, 4.9))
 
         for drv in session.drivers:
-            drv_laps = session.laps.pick_driver(drv)
+            drv_laps = session.laps.pick_drivers(drv)
             if len(drv_laps) == 0:
                 continue
             abb = drv_laps['Driver'].iloc[0]
@@ -207,7 +207,7 @@ class myFastf1:
 
         list_fastest_laps = list()
         for drv in drivers:
-            drv_fastest_lap = session.laps.pick_driver(drv).pick_fastest()
+            drv_fastest_lap = session.laps.pick_drivers(drv).pick_fastest()
             if drv_fastest_lap['Driver'] is np.nan:
                 continue
             list_fastest_laps.append(drv_fastest_lap)
@@ -262,7 +262,7 @@ class myFastf1:
 
         fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
 
-        driver_laps = session.laps.pick_driver(driver).pick_quicklaps().reset_index(drop=True)
+        driver_laps = session.laps.pick_drivers(driver).pick_quicklaps().reset_index(drop=True)
         #driver_laps['Compound'].loc[driver_laps['Compound'] == 'TEST_UNKNOWN'] = 'TEST-UNKNOWN'
 
         fig, ax = plt.subplots(figsize=(8, 8))
@@ -357,8 +357,8 @@ class myFastf1:
 
         fastf1.plotting.setup_mpl(mpl_timedelta_support=False, misc_mpl_mods=False, color_scheme='fastf1')
 
-        d1_lap = session.laps.pick_driver(driver1).pick_fastest()
-        d2_lap = session.laps.pick_driver(driver2).pick_fastest()
+        d1_lap = session.laps.pick_drivers(driver1).pick_fastest()
+        d2_lap = session.laps.pick_drivers(driver2).pick_fastest()
 
         d1_tel = d1_lap.get_car_data().add_distance()
         d2_tel = d2_lap.get_car_data().add_distance()
@@ -465,8 +465,8 @@ class myFastf1:
         plotting.setup_mpl()
         pd.options.mode.chained_assignment = None
 
-        d1_lap = session.laps.pick_driver(driver1).pick_lap(driver1_lap)
-        d2_lap = session.laps.pick_driver(driver2).pick_lap(driver2_lap)
+        d1_lap = session.laps.pick_drivers(driver1).pick_lap(driver1_lap)
+        d2_lap = session.laps.pick_drivers(driver2).pick_lap(driver2_lap)
 
         d1_tel = d1_lap.get_telemetry().add_distance()
         d1_tel['Driver'] = driver1
@@ -565,7 +565,7 @@ class myFastf1:
         telemetry = pd.DataFrame()
 
         for driver in drivers:
-            driver_laps = alap.pick_driver(driver)
+            driver_laps = alap.pick_drivers(driver)
 
             for lap in driver_laps.iterlaps():
                 driver_telemetry = lap[1].get_telemetry().add_distance()
@@ -680,7 +680,7 @@ class myFastf1:
         fig, ax = plt.subplots()
 
         for drv in drivers:
-            drv_laps = laps.pick_driver(drv)
+            drv_laps = laps.pick_drivers(drv)
             if len(drv_laps) == 0:
                 continue
             abb = drv_laps['Driver'].iloc[0]
@@ -720,15 +720,15 @@ class myFastf1:
 
         fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
 
-        target = session.laps.pick_driver(drivers[0])['LapStartTime'].dt.total_seconds().reset_index(drop=True)
-        target_drv = session.laps.pick_driver(drivers[0])['Driver'].iloc[0]
+        target = session.laps.pick_drivers(drivers[0])['LapStartTime'].dt.total_seconds().reset_index(drop=True)
+        target_drv = session.laps.pick_drivers(drivers[0])['Driver'].iloc[0]
 
         fig, ax = plt.subplots()
         for drv in drivers:
-            drv_laps = session.laps.pick_driver(drv)['LapStartTime'].dt.total_seconds().reset_index(drop=True)
+            drv_laps = session.laps.pick_drivers(drv)['LapStartTime'].dt.total_seconds().reset_index(drop=True)
             if len(drv_laps) == 0:
                 continue
-            abb = session.laps.pick_driver(drv)['Driver'].iloc[0]
+            abb = session.laps.pick_drivers(drv)['Driver'].iloc[0]
             style = fastf1.plotting.get_driver_style(identifier=abb,
             style=['color', 'linestyle'],
             session=session)
@@ -768,7 +768,7 @@ class myFastf1:
         df = pd.DataFrame()
 
         for drv in drivers:
-            laps = session.laps.pick_driver(drv)
+            laps = session.laps.pick_drivers(drv)
 
             speed_list = list()
             for index, lap in laps.iterlaps():
@@ -827,17 +827,17 @@ class myFastf1:
         import pandas as pd
         from timple.timedelta import strftimedelta
 
-        abb1 = session.laps.pick_driver(driver1)['Driver'].iloc[0]
+        abb1 = session.laps.pick_drivers(driver1)['Driver'].iloc[0]
         color1 = fastf1.plotting.get_driver_color(abb1, session)
 
-        abb2 = session.laps.pick_driver(driver2)['Driver'].iloc[0]
+        abb2 = session.laps.pick_drivers(driver2)['Driver'].iloc[0]
         color2 = fastf1.plotting.get_driver_color(abb2, session)
 
-        lap1 = session.laps.pick_driver(driver1).pick_fastest()
+        lap1 = session.laps.pick_drivers(driver1).pick_fastest()
         tel1 = lap1.get_telemetry()
         linestyle1 = 'solid'
 
-        lap2 = session.laps.pick_driver(driver2).pick_fastest()
+        lap2 = session.laps.pick_drivers(driver2).pick_fastest()
         tel2 = lap2.get_telemetry()
         linestyle2 = 'dashed'
 
@@ -916,7 +916,7 @@ class myFastf1:
 
         fig, ax = plt.subplots()
 
-        target = session.laps.pick_driver(drivers[0])[lap_num:]
+        target = session.laps.pick_drivers(drivers[0])[lap_num:]
         target = target.reset_index()
         target['LapTimeSec'] = target['LapTime'].dt.total_seconds()
         #lap_count = target['LapNumber'].count()
@@ -924,7 +924,7 @@ class myFastf1:
         target_avg = target['LapTimeSec'].sum() / lap_count
 
         for drv in drivers:
-            drv_laps = session.laps.pick_driver(drv)[lap_num:]
+            drv_laps = session.laps.pick_drivers(drv)[lap_num:]
             drv_laps = drv_laps.reset_index()
             if len(drv_laps) == 0:
                 continue
@@ -988,9 +988,9 @@ class myFastf1:
         index = 0
         for drv in [driver1, driver2]:
             if lap != 0:
-                lap1 = session.laps.pick_driver(drv).pick_lap(lap).iloc[0]
+                lap1 = session.laps.pick_drivers(drv).pick_lap(lap).iloc[0]
             else:
-                lap1 = session.laps.pick_driver(drv).pick_fastest()
+                lap1 = session.laps.pick_drivers(drv).pick_fastest()
             style = fastf1.plotting.get_driver_style(lap1['Driver'],
             style=['color', 'linestyle'],
             session=session
