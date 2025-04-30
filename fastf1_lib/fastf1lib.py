@@ -1020,3 +1020,95 @@ class myFastf1:
         plt.suptitle(f"{session.event['EventName']} {session.event.year} on {lapstring}\n"
                      f"{driver1} vs {driver2}")
         plt.show()
+
+    def team_sectortime_best(self, session):
+        """
+        ## チームごとのにセクターベストタイムの合計を算出 ##
+
+        #### Parameters ####
+        ----------
+        1. session : session 
+            セッションオブジェクト
+
+        #### Return ####
+        1. list : Sector BestLap
+        """
+        # 
+        laps = session.laps.pick_quicklaps()
+
+        transformed_laps = laps.copy()
+        transformed_laps.loc[:, "LapTime (s)"] = laps["LapTime"].dt.total_seconds()
+        transformed_laps = transformed_laps.reset_index(drop=True)
+
+        team_order = (
+            transformed_laps[["Team", "LapTime (s)"]]
+            .groupby("Team")
+            .median()["LapTime (s)"]
+            .sort_values()
+            .index
+        )
+
+        df = team_order.to_frame()
+
+        # チームごとに各セクターのベストタイムを抽出
+        df['t1'] = df.apply(lambda row: session.laps.pick_teams(row['Team'])['Sector1Time'].min(), axis=1)
+        df['t2'] = df.apply(lambda row: session.laps.pick_teams(row['Team'])['Sector2Time'].min(), axis=1)
+        df['t3'] = df.apply(lambda row: session.laps.pick_teams(row['Team'])['Sector3Time'].min(), axis=1)
+
+        # チームごとにセクターベストタイムの合計を理論上ベストタイムとして計算
+        df['BestLap'] = df.apply(lambda row: row['t1'] + row['t2'] + row['t3'], axis=1)
+
+        return df[['Team', 'BestLap']].reset_index(drop=True)
+
+    def team_sectortime_ratio(self, session):
+        """
+        ## チームごとのパフォーマンス差をトップからの割合で返す ##
+
+        #### Parameters ####
+        ----------
+        1. session : session 
+            セッションオブジェクト
+
+        #### Return ####
+        1. list : performance ratio
+        """
+        df = self.team_sectortime_best(session)
+
+        # 最速タイムを基準値にする
+        fastest = df['BestLap'].min()
+
+        # 基準値からの割合を計算する
+        df['ratio'] = df.apply(lambda row: row['BestLap'] / fastest, axis=1)
+
+        return df
+    
+    def team_sectortime_ratio(self, session_race, session_qual):
+        """
+        ## 予選と決勝の合計でチームごとのパフォーマンス差をトップからの割合で返す ##
+
+        #### Parameters ####
+        ----------
+        1. session : session_race 
+            決勝のセッションオブジェクト
+        1. session : session_qual 
+            予選のセッションオブジェクト
+
+        #### Return ####
+        1. list : performance ratio
+        """
+        import pandas as pd
+
+        df1 = self.team_sectortime_best(session_race)
+        df2 = self.team_sectortime_best(session_qual)
+
+        result = pd.merge(df1, df2, on='Team')
+
+        result['total'] = result.apply(lambda row: row['BestLap_x'] + row['BestLap_y'], axis=1)
+
+        # 最速タイムを基準値にする
+        fastest = result['total'].min()
+
+        # 基準値からの割合を計算する
+        result['ratio'] = result.apply(lambda row: row['total'] / fastest, axis=1)
+
+        return result
