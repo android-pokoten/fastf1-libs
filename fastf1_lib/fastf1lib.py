@@ -701,6 +701,52 @@ class myFastf1:
         plt.tight_layout()
         plt.show()
 
+    def self_deltatime_comperition(self, target, target_name, session, drivers):
+        """
+        ## 複数ドライバーのラップタイム推移を比較するメソッドの共通グラフ描写処理 ##
+        target に基準とする LapStartTime のリストを指定する。
+        #### Parameters ####
+        ----------
+        1. target : list
+            基準とするタイム
+        1. target_name : string
+            グラフのタイトルに表示する文字列
+        1. session : session 
+            セッションオブジェクト
+        1. drivers : [string]
+            ドライバーのリスト
+        """
+        import fastf1.plotting
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
+
+        #target = session.laps.pick_drivers(drivers[0])['LapStartTime'].dt.total_seconds().reset_index(drop=True)
+        #target_drv = session.laps.pick_drivers(drivers[0])['Driver'].iloc[0]
+
+        fig, ax = plt.subplots()
+        for drv in drivers:
+            drv_laps = session.laps.pick_drivers(drv)['LapStartTime'].dt.total_seconds().reset_index(drop=True)
+            if len(drv_laps) == 0:
+                continue
+            abb = session.laps.pick_drivers(drv)['Driver'].iloc[0]
+            style = fastf1.plotting.get_driver_style(identifier=abb,
+            style=['color', 'linestyle'],
+            session=session)
+            ax.plot(target - drv_laps, label=abb, **style)
+
+        ax.legend()
+        ax.set_xlabel("Lap Number")
+        ax.set_ylabel("Time Delta")
+        ax.yaxis.grid(True, which='major', linestyle='--', color='gray', zorder=-1000)
+        #ax.set_ylim(np.timedelta64(min_sec, 's'), np.timedelta64(max_sec, 's'))
+
+        plt.suptitle(f"{session.event['EventName']} {session.event.year} Time Delta from {target_name}")
+
+        plt.tight_layout()
+        plt.show()
+
     def deltatime_comperition(self, session, drivers):
         """
         ## 複数ドライバーのラップタイム推移を比較 ##
@@ -723,27 +769,67 @@ class myFastf1:
         target = session.laps.pick_drivers(drivers[0])['LapStartTime'].dt.total_seconds().reset_index(drop=True)
         target_drv = session.laps.pick_drivers(drivers[0])['Driver'].iloc[0]
 
-        fig, ax = plt.subplots()
-        for drv in drivers:
-            drv_laps = session.laps.pick_drivers(drv)['LapStartTime'].dt.total_seconds().reset_index(drop=True)
-            if len(drv_laps) == 0:
-                continue
-            abb = session.laps.pick_drivers(drv)['Driver'].iloc[0]
-            style = fastf1.plotting.get_driver_style(identifier=abb,
-            style=['color', 'linestyle'],
-            session=session)
-            ax.plot(target - drv_laps, label=abb, **style)
+        self.self_deltatime_comperition(target, target_drv, session, drivers)
 
-        ax.legend()
-        ax.set_xlabel("Lap Number")
-        ax.set_ylabel("Time Delta")
-        ax.yaxis.grid(True, which='major', linestyle='--', color='gray', zorder=-1000)
-        #ax.set_ylim(np.timedelta64(min_sec, 's'), np.timedelta64(max_sec, 's'))
+    def deltatime_comperition_position(self, session, drivers, position):
+        """
+        ## 複数ドライバーのラップタイム推移を比較 ##
+        ドライバーリストは、[] で囲んで , で区切って記載する。  
+        position で指定した順位を基準 (0) とする。
 
-        plt.suptitle(f"{session.event['EventName']} {session.event.year} Time Delta from {target_drv}")
+        #### Parameters ####
+        ----------
+        1. session : session 
+            セッションオブジェクト
+        1. drivers : [string]
+            ドライバーのリスト
+        1. position : int
+            基準とする順位
+        """
+        import fastf1.plotting
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import pandas as pd
 
-        plt.tight_layout()
-        plt.show()
+        fastf1.plotting.setup_mpl(misc_mpl_mods=False, color_scheme='fastf1')
+
+        laps = session.laps
+
+        # 最大周回数
+        max_lap = int(laps['LapNumber'].max())
+        # ダミー行のリスト
+        dummy_rows = []
+
+        # position で指定する順位のラップを取得
+        temp_targets = laps[laps['Position'] == position].sort_values(by='LapNumber')
+
+        # データのある周回数
+        existing_laps = set(temp_targets['LapNumber'].dropna().astype(int))
+        full_laps = set(range(1, max_lap + 1))
+
+        # データのない周回数を割り出す
+        missing_laps = full_laps - existing_laps
+
+        # データのない周回数にダミーデータを追加
+        for lap_num in missing_laps:
+            # ベースとなる行：そのドライバーの1周目のデータ（なければ最初の有効データ）
+            template = temp_targets.iloc[0].copy()
+            template['LapNumber'] = lap_num
+            template['LapTime'] = pd.NA
+            template['LapStartTime'] = pd.NA
+            template['IsAccurate'] = False
+            template['FastF1Generated'] = True
+            dummy_rows.append(template)
+
+        # まとめて結合
+        dummy_df = pd.DataFrame(dummy_rows)
+        target = pd.concat([temp_targets, dummy_df], ignore_index=True)
+        target = target.sort_values(['LapNumber'])['LapStartTime'].dt.total_seconds().reset_index(drop=True)
+
+        target_lap = f"Position {position}" 
+
+        self.self_deltatime_comperition(target, target_lap, session, drivers)
+
 
     def speedtrap_heatmap(self, session, datanum, vmin):
         """
