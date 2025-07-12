@@ -555,10 +555,10 @@ class myFastf1:
         import numpy as np
         import pandas as pd
 
-        plotting.setup_mpl()
+        plotting.setup_mpl(mpl_timedelta_support=False, misc_mpl_mods=False, color_scheme='fastf1')
         pd.options.mode.chained_assignment = None
         
-        alap = session.laps.pick_lap(target_lap)
+        alap = session.laps.pick_laps(target_lap)
         alaps = session.laps.pick_quicklaps()
         drivers = pd.unique(alap['Driver'])
 
@@ -576,7 +576,7 @@ class myFastf1:
                 telemetry = pd.concat([telemetry, driver_telemetry], ignore_index=True, axis=0)
 
         telemetry = telemetry[['Lap', 'Distance', 'Compound', 'Speed', 'X', 'Y']]
-        telemetry['Compound'].loc[telemetry['Compound'] != 'INTERMEDIATE'] = 'SLICK'
+        telemetry.loc[telemetry['Compound'] != 'INTERMEDIATE', 'Compound'] = 'SLICK'
 
         num_minisectors = 25
 
@@ -618,7 +618,7 @@ class myFastf1:
         segments = np.concatenate([points[:-1], points[1:]], axis=1)
         compound = telemetry['Fastest_compound_int'].to_numpy()
 
-        cmap = cm.get_cmap('ocean', 2)
+        cmap = plt.get_cmap('ocean', 2)
         lc_comp = LineCollection(segments, norm=plt.Normalize(1, cmap.N+1), cmap=cmap)
         lc_comp.set_array(compound)
         lc_comp.set_linewidth(2)
@@ -628,6 +628,7 @@ class myFastf1:
         plt.gca().add_collection(lc_comp)
         plt.axis('equal')
         plt.tick_params(labelleft=False, left=False, labelbottom=False, bottom=False)
+        plt.suptitle(f"{session.event['EventName']} {session.event.year} SLICK vs WET  Lap {target_lap}")
 
         plt.show()
 
