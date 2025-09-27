@@ -1199,3 +1199,89 @@ class myFastf1:
         result['ratio'] = result.apply(lambda row: row['total'] / fastest, axis=1)
 
         return result
+
+    def segment_compare(self, session, min, max):
+        """
+        ## min と max で囲んだセグメントの通過タイムの早い順で並べる ##
+
+        #### Parameters ####
+        ----------
+        1. session : session
+            セッションオブジェクト(予選セッションを想定)
+        1. int : min 
+            セグメントの開始距離
+        1. int : max 
+            セグメントの終了距離
+        """
+        import numpy as np
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        from matplotlib.collections import LineCollection
+
+        pd.options.mode.chained_assignment = None
+
+        # 一覧表示するドライバー数
+        rank = 10
+
+        drv_average = []
+        length = max - min
+        # セッション出場ドライバーの一覧
+        driver_codes = {
+            drv: session.get_driver(drv)['Abbreviation']
+            for drv in session.drivers
+        }
+        # 全ドライバーの区間速度を計算
+        for drv in driver_codes.values():
+            # ドライバーの区間速度を計算
+            d1_lap = session.laps.pick_drivers(drv).pick_fastest()
+            d1_tel = d1_lap.get_telemetry().add_distance()
+            d1_tel['Target'] = ((d1_tel['Distance'] >= min) & (d1_tel['Distance'] <= max)).astype(int)
+        
+            # 平均速度(km/h)
+            sp_value = d1_tel.loc[d1_tel['Target'] == 1, 'Speed'].mean()
+            # 通貨時間(s)
+            sp_time = length / sp_value / 3.6
+            drv_average.append([drv, f"{sp_value:.2f}", f"{sp_time:.3f}"])
+
+        # 最速ドライバーを基準として、タイム差を計算する
+        df = pd.DataFrame(drv_average, columns=['Driver', 'Speed', 'Time']).sort_values(by=['Time']).head(rank)
+        fastest = float(df['Time'].min())
+        df['Delta'] = df['Time'].apply(lambda x: f"{float(x) - fastest:.3f}")
+        
+        # グラフ描写用に最速ラップから x, y 座標を取得 
+        lap = session.laps.pick_fastest()
+        d1_tel = lap.get_telemetry().add_distance()
+
+        telemetry = pd.DataFrame()
+        telemetry = pd.concat([telemetry, d1_tel], ignore_index=True, axis=0)
+        telemetry = telemetry[['Distance', 'Speed', 'X', 'Y']]
+
+        # 対象区間を赤色にする
+        telemetry['Target'] = ((telemetry['Distance'] >= min) & (telemetry['Distance'] <= max)).astype(int)
+        color_map = np.where(telemetry['Target'] == 1, 'red', 'gray')
+        
+        telemetry = telemetry.sort_values(by=['Distance'])
+
+        x = np.array(telemetry['X'].values)
+        y = np.array(telemetry['Y'].values)
+
+        points = np.array([x, y]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+        lc_comp = LineCollection(segments, colors=color_map)
+        lc_comp.set_linewidth(2)
+
+        # グラフ描写
+        fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(8, 11))
+        # コース図を描写
+        ax1.add_collection(lc_comp)
+        ax1.set_xlim(x.min() - 100, x.max() + 100)
+        ax1.set_ylim(y.min() - 100, y.max() + 100)
+        ax1.set_title('Track Segments')
+        # ドライバーごとの区間ランクを描写
+        ax2.axis('off')
+        table = ax2.table(cellText=df.values, colLabels=df.columns, loc='center', cellLoc='center')
+        table.scale(1,2)
+
+        plt.tick_params(labelleft=False, left=False, labelbottom=False, bottom=False)
+        plt.show()
