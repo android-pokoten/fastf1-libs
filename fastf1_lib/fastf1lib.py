@@ -1234,14 +1234,16 @@ class myFastf1:
         for drv in driver_codes.values():
             # ドライバーの区間速度を計算
             d1_lap = session.laps.pick_drivers(drv).pick_fastest()
-            d1_tel = d1_lap.get_telemetry().add_distance()
-            d1_tel['Target'] = ((d1_tel['Distance'] >= min) & (d1_tel['Distance'] <= max)).astype(int)
-        
-            # 平均速度(km/h)
-            sp_value = d1_tel.loc[d1_tel['Target'] == 1, 'Speed'].mean()
-            # 通貨時間(s)
-            sp_time = length / sp_value / 3.6
-            drv_average.append([drv, f"{sp_value:.2f}", f"{sp_time:.3f}"])
+            # ラップタイムがない=セッションを走行していない場合は処理をしない
+            if d1_lap is not None:
+                d1_tel = d1_lap.get_telemetry().add_distance()
+                d1_tel['Target'] = ((d1_tel['Distance'] >= min) & (d1_tel['Distance'] <= max)).astype(int)
+            
+                # 平均速度(km/h)
+                sp_value = d1_tel.loc[d1_tel['Target'] == 1, 'Speed'].mean()
+                # 通貨時間(s)
+                sp_time = length / sp_value / 3.6
+                drv_average.append([drv, f"{sp_value:.2f}", f"{sp_time:.3f}"])
 
         # 最速ドライバーを基準として、タイム差を計算する
         df = pd.DataFrame(drv_average, columns=['Driver', 'Speed', 'Time']).sort_values(by=['Time']).head(rank)
